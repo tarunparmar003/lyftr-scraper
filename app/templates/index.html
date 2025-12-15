@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Lyftr Universal Website Scraper</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: Inter, Arial, sans-serif;
+      background: linear-gradient(135deg, #eef2f7, #f7f9fc);
+      margin: 0;
+      padding: 0;
+    }
+
+    header {
+      background: #1f2937;
+      color: white;
+      padding: 16px;
+      font-size: 18px;
+      font-weight: 600;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .container {
+      max-width: 960px;
+      margin: 30px auto;
+      background: white;
+      padding: 24px;
+      border-radius: 10px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+    }
+
+    .input-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+
+    input {
+      flex: 1;
+      padding: 10px;
+      font-size: 15px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+
+    button {
+      padding: 10px 14px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-weight: 500;
+    }
+
+    .scrape-btn {
+      background: #2563eb;
+      color: white;
+    }
+
+    .scrape-btn:hover {
+      background: #1e4ed8;
+    }
+
+    .download-btn {
+      background: #16a34a;
+      color: white;
+      margin-top: 15px;
+      display: none;
+    }
+
+    .loading {
+      margin-top: 10px;
+      color: #2563eb;
+      font-weight: 500;
+    }
+
+    .error {
+      margin-top: 10px;
+      color: #dc2626;
+      font-weight: 500;
+    }
+
+    .section {
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      margin-top: 12px;
+      overflow: hidden;
+    }
+
+    .section-header {
+      padding: 12px;
+      background: #f9fafb;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: background 0.2s;
+    }
+
+    .section-header:hover {
+      background: #eef2ff;
+    }
+
+    .badge {
+      background: #e0e7ff;
+      color: #1e40af;
+      font-size: 12px;
+      padding: 3px 8px;
+      border-radius: 12px;
+    }
+
+    .section-content {
+      display: none;
+      padding: 14px;
+      background: #ffffff;
+      font-size: 13px;
+      white-space: pre-wrap;
+      border-top: 1px solid #e5e7eb;
+      max-height: 400px;
+      overflow: auto;
+    }
+
+    footer {
+      text-align: center;
+      padding: 20px;
+      font-size: 13px;
+      color: #6b7280;
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  Lyftr Universal Website Scraper
+</header>
+
+<div class="container">
+
+  <div class="input-row">
+    <input id="urlInput" placeholder="https://example.com" />
+    <button class="scrape-btn" onclick="scrape()">Scrape</button>
+  </div>
+
+  <div id="loading" class="loading"></div>
+  <div id="error" class="error"></div>
+
+  <button id="downloadBtn" class="download-btn" onclick="downloadJSON()">
+    Download JSON
+  </button>
+
+  <div id="sections"></div>
+</div>
+
+<footer>
+  Built for Lyftr AI – Universal Website Scraper MVP
+</footer>
+
+<script>
+  let lastResult = null;
+
+  async function scrape() {
+    const url = document.getElementById("urlInput").value;
+    const loading = document.getElementById("loading");
+    const error = document.getElementById("error");
+    const sectionsDiv = document.getElementById("sections");
+    const downloadBtn = document.getElementById("downloadBtn");
+
+    error.innerText = "";
+    sectionsDiv.innerHTML = "";
+    downloadBtn.style.display = "none";
+
+    if (!url) {
+      error.innerText = "Please enter a valid URL";
+      return;
+    }
+
+    loading.innerText = "Scraping website, please wait...";
+
+    try {
+      const res = await fetch("/scrape", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url })
+      });
+
+      const data = await res.json();
+      loading.innerText = "";
+
+      if (!data.result) {
+        error.innerText = "Invalid response from server";
+        return;
+      }
+
+      lastResult = data;
+      downloadBtn.style.display = "inline-block";
+
+      renderSections(data.result.sections);
+
+    } catch (err) {
+      loading.innerText = "";
+      error.innerText = "Failed to scrape the website";
+    }
+  }
+
+  function renderSections(sections) {
+    const container = document.getElementById("sections");
+
+    sections.forEach((section) => {
+      const wrapper = document.createElement("div");
+      wrapper.className = "section";
+
+      const header = document.createElement("div");
+      header.className = "section-header";
+      header.innerHTML = `
+        <span>${section.label}</span>
+        <span class="badge">${section.type}</span>
+      `;
+
+      const content = document.createElement("div");
+      content.className = "section-content";
+      content.textContent = JSON.stringify(section, null, 2);
+
+      header.onclick = () => {
+        content.style.display =
+          content.style.display === "block" ? "none" : "block";
+      };
+
+      wrapper.appendChild(header);
+      wrapper.appendChild(content);
+      container.appendChild(wrapper);
+    });
+  }
+
+  function downloadJSON() {
+    const blob = new Blob(
+      [JSON.stringify(lastResult, null, 2)],
+      { type: "application/json" }
+    );
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "scrape-result.json";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+</script>
+
+</body>
+</html>

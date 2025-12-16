@@ -2,7 +2,7 @@
 ## How To Run 
 uvicorn app.main:app
 
-## How to run
+## How to run Bash
 ```bash
 chmod +x run.sh
 ./run.sh

@@ -1,4 +1,6 @@
 # Lyftr AI – Full Stack Assignment
+## How To Run 
+uvicorn app.main:app
 
 ## How to run
 ```bash
